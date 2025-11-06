@@ -13,30 +13,29 @@ export default function SignIn({ navigation }) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    // TODO: Implement sign in logic
-    Alert.alert('Success', 'Sign in successful!');
+    navigation.navigate('Dashboard');
   };
 
   return (
-    <LinearGradient colors={['#1a1a1a', '#000000']} style={styles.container}>
+    <LinearGradient colors={['#0B1437', '#0B1437', '#000000']} locations={[0, 0.55, 1]} style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.logo}>
-          <Image source={require('../Component 16 (1).png')} style={styles.logoImage} />
+        <View style={styles.logoContainer}>
+          <Image source={require('../obex-logo-joined.png')} style={styles.logo} />
         </View>
 
         <Text style={styles.title}>
-          Welcome <Text style={styles.titleHighlight}>Back</Text>
+          Welcome <Text style={styles.titleAccent}>Back</Text>
         </Text>
         <Text style={styles.subtitle}>Sign in to your OBEX account</Text>
 
-        <View style={styles.inputContainer}>
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrapper}>
-            <Ionicons name="mail" size={20} color="#888" style={styles.icon} />
+            <Ionicons name="mail" size={20} color="#6B7280" style={styles.leftIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor="#888"
+              placeholder="Input Email"
+              placeholderTextColor="#6B7280"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -45,34 +44,32 @@ export default function SignIn({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.inputContainer}>
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputWrapper}>
-            <Ionicons name="lock-closed" size={20} color="#888" style={styles.icon} />
+            <Ionicons name="lock-closed" size={20} color="#6B7280" style={styles.leftIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Enter your password"
-              placeholderTextColor="#888"
+              placeholder="Input Password"
+              placeholderTextColor="#6B7280"
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-              <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#888" />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.rightIcon}>
+              <Ionicons name={showPassword ? "eye-off" : "eye"} size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-          <Text style={styles.buttonText}>Sign In</Text>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSignIn}>
+          <Text style={styles.submitButtonText}>Sign In</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.link}>
-          <Text style={styles.linkText}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('SignUp')}>
-          <Text style={styles.linkText}>Don't have an account? <Text style={styles.linkHighlight}>Sign Up</Text></Text>
+        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <Text style={styles.bottomLinkText}>
+            Don't have an account? <Text style={styles.bottomLinkHighlight}>Sign up here</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -82,97 +79,104 @@ export default function SignIn({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0B1437',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   card: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 20,
-    padding: 30,
-    width: '90%',
+    backgroundColor: '#1A2342',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    width: '100%',
     maxWidth: 400,
-    shadowColor: '#3a82f6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   logo: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logoImage: {
-    width: 160,
-    height: 160,
+    width: 80,
+    height: 80,
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '600',
     textAlign: 'center',
-    color: '#fff',
-    marginBottom: 5,
+    color: '#FFFFFF',
+    marginBottom: 8,
   },
-  titleHighlight: {
-    color: '#3a82f6',
+  titleAccent: {
+    color: '#4A9EFF',
   },
   subtitle: {
     fontSize: 14,
-    color: '#888',
+    color: '#8B92A7',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
   },
-  inputContainer: {
+  inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    color: '#ccc',
-    marginBottom: 5,
+    color: '#FFFFFF',
+    marginBottom: 8,
     fontWeight: '500',
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#222',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    height: 50,
+    position: 'relative',
+    backgroundColor: '#141B2D',
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    height: 48,
   },
-  icon: {
-    marginRight: 10,
+  leftIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 14,
+    zIndex: 1,
+  },
+  rightIcon: {
+    position: 'absolute',
+    right: 12,
+    top: 14,
+    zIndex: 1,
   },
   input: {
     flex: 1,
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: 16,
+    paddingLeft: 40,
+    paddingRight: 40,
+    paddingVertical: 12,
   },
-  eyeIcon: {
-    marginLeft: 10,
-  },
-  button: {
-    backgroundColor: '#fff',
+  submitButton: {
+    backgroundColor: '#FFFFFF',
     height: 50,
-    borderRadius: 10,
+    borderRadius: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
-  buttonText: {
-    color: '#000',
-    fontSize: 18,
-    fontWeight: 'bold',
+  submitButtonText: {
+    color: '#1A2342',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  link: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  linkText: {
-    color: '#888',
+  bottomLinkText: {
+    color: '#8B92A7',
     fontSize: 14,
+    textAlign: 'center',
+    marginTop: 16,
   },
-  linkHighlight: {
-    color: '#3a82f6',
-    fontWeight: 'bold',
+  bottomLinkHighlight: {
+    color: '#4A9EFF',
+    fontWeight: '500',
   },
 });
