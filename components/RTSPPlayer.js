@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { VLCPlayer } from 'react-native-vlc-media-player';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +17,21 @@ const RTSPPlayer = ({
   const playerRef = useRef(null);
 
   const handleLoad = (data) => {
+    console.log('VLC Player loaded:', data);
     setIsLoading(false);
     setHasError(false);
     onLoad && onLoad(data);
+  };
+
+  const handlePlaying = () => {
+    console.log('VLC Player playing');
+    setIsLoading(false);
+    setIsPlaying(true);
+  };
+
+  const handleBuffering = (data) => {
+    console.log('VLC Player buffering:', data);
+    // Don't show loading for buffering, only for initial connection
   };
 
   const handleError = (error) => {
@@ -40,6 +52,22 @@ const RTSPPlayer = ({
     setHasError(false);
     setIsPlaying(true);
   };
+
+  // Reset loading state when URL changes
+  useEffect(() => {
+    if (rtspUrl) {
+      setIsLoading(true);
+      setHasError(false);
+      
+      // Force clear loading after 10 seconds if no events fire
+      const timeout = setTimeout(() => {
+        console.log('Forcing loading state clear after timeout');
+        setIsLoading(false);
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [rtspUrl]);
 
   if (hasError) {
     return (
@@ -62,8 +90,13 @@ const RTSPPlayer = ({
         autoplay={true}
         onLoad={handleLoad}
         onError={handleError}
-        onPlaying={() => setIsPlaying(true)}
+        onPlaying={handlePlaying}
         onPaused={() => setIsPlaying(false)}
+        onBuffering={handleBuffering}
+        onOpen={() => {
+          console.log('VLC Player opened');
+          setIsLoading(false);
+        }}
         options={{
           '--network-caching': 2000,
           '--rtsp-caching': 2000,
