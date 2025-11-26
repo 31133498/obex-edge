@@ -168,15 +168,13 @@ const DashboardScreen = ({ navigation }) => {
                   <View style={styles.cameraIconArea}>
                     {camera.rtspUrl ? (
                       <>
-                        <RTSPPlayer
-                          rtspUrl={camera.rtspUrl}
-                          style={styles.videoStream}
-                          autoplay={true}
-                          showControls={false}
-                        />
+                        <View style={styles.videoStream}>
+                          <Text style={styles.streamingText}>RTSP Stream Ready</Text>
+                          <Text style={styles.urlText}>{camera.rtspUrl}</Text>
+                        </View>
                         <View style={styles.liveIndicator}>
                           <View style={styles.liveDot} />
-                          <Text style={styles.liveText}>LIVE</Text>
+                          <Text style={styles.liveText}>READY</Text>
                         </View>
                       </>
                     ) : (
@@ -588,6 +586,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: '#1A1A1A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  streamingText: {
+    color: '#4A9EFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  urlText: {
+    color: '#8B92A7',
+    fontSize: 10,
+    textAlign: 'center',
   },
   liveIndicator: {
     position: 'absolute',

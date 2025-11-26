@@ -45,7 +45,8 @@
     "web": {},
     "plugins": [
       "expo-asset",
-      "expo-av"
+      "expo-av",
+      "./expo-plugins/android-min-sdk.js"
     ],
     "extra": {
       "eas": {
