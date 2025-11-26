@@ -367,11 +367,7 @@ const styles = StyleSheet.create({
   xAxisLabel: {
     color: '#8B92A7',
     fontSize: 12,
-    textAlign: 'center', 0,
-    bottom: 40,
-    width: 30,
-    justifyContent: 'space-between',
-    paddingVertical: 10,
+    textAlign: 'center',
   },
   yAxisLabel: {
     color: '#8B92A7',

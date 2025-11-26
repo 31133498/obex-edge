@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RTSPPlayer from '../components/RTSPPlayer';
+import NetworkTest from '../components/NetworkTest';
 
 const { width, height } = Dimensions.get('window');
 
@@ -169,6 +170,9 @@ const LiveStreamScreen = ({ navigation }) => {
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Network Test */}
+        <NetworkTest cameraIP="192.168.1.10" />
 
         {/* Stream Info */}
         <View style={styles.infoContainer}>

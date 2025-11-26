@@ -26,8 +26,9 @@ const RTSPPlayer = ({
     setIsLoading(false);
     setHasError(true);
     console.error('RTSP Player Error:', error);
+    console.error('RTSP URL:', rtspUrl);
     onError && onError(error);
-    Alert.alert('Streaming Error', 'Failed to load video stream. Please check your connection and try again.');
+    Alert.alert('Streaming Error', `Failed to load video stream: ${JSON.stringify(error)}\n\nURL: ${rtspUrl}\n\nCheck network and camera settings.`);
   };
 
   const togglePlayPause = () => {
@@ -58,17 +59,20 @@ const RTSPPlayer = ({
         ref={playerRef}
         style={styles.player}
         source={{ uri: rtspUrl }}
-        autoplay={autoplay}
+        autoplay={true}
         onLoad={handleLoad}
         onError={handleError}
         onPlaying={() => setIsPlaying(true)}
         onPaused={() => setIsPlaying(false)}
         options={{
-          '--network-caching': 150,
-          '--rtsp-caching': 150,
-          '--no-audio': false,
-          '--rtsp-tcp': true,
-          '--live-caching': 150
+          '--network-caching': 2000,
+          '--rtsp-caching': 2000,
+          '--no-audio': true,
+          '--rtsp-tcp': false,
+          '--live-caching': 2000,
+          '--rtsp-timeout': 10000,
+          '--drop-late-frames': true,
+          '--skip-frames': true
         }}
       />
       

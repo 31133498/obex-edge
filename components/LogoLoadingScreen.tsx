@@ -1,20 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Image,
   StyleSheet,
   Dimensions,
   Text,
-} from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
+  Animated,
   Easing,
-  interpolate,
-  Extrapolate,
-} from 'react-native-reanimated';
+} from 'react-native';
 
 // ------------------------------------------------------------------
 // 1. CONSTANTS
@@ -33,132 +26,63 @@ const OFFSET_Y = LOGO_SIZE * 0.5;
 // 2. COMPONENT
 // ------------------------------------------------------------------
 const LogoLoadingScreen = () => {
-  // ---- animation progress (0 → 1) ----
-  const progress = useSharedValue(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // Start animation on mount
   useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(1, {
-        duration: DURATION,
-        easing: Easing.out(Easing.quad),
-      }),
-      -1, // infinite
-      false
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnim, {
+            toValue: 0.6,
+            duration: 1000,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 0.9,
+            duration: 1000,
+            easing: Easing.in(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
     );
+    animation.start();
+    return () => animation.stop();
   }, []);
-
-  // ------------------- BLUE PART (bottom-right) -------------------
-  const blueAnim = useAnimatedStyle(() => {
-    const t = progress.value;
-
-    // 0-0.45 : slide in
-    const slideT = interpolate(t, [0, 0.45], [0, 1], Extrapolate.CLAMP);
-    const offsetX = interpolate(slideT, [0, 1], [OFFSET_X, 0]);
-    const offsetY = interpolate(slideT, [0, 1], [OFFSET_Y, 0]);
-
-    // 0.45-0.55 : tiny rotation
-    const rotT = interpolate(t, [0.45, 0.55], [0, 1], Extrapolate.CLAMP);
-    const blueRot = interpolate(rotT, [0, 1], [12, 0]); // deg
-
-    // 0.55-0.70 : pop scale
-    const popT = interpolate(t, [0.55, 0.70], [0, 1], Extrapolate.CLAMP);
-    const blueScale = interpolate(popT, [0, 1], [1, 1.05]);
-
-    // 0.70-0.85 : fade out
-    const fadeT = interpolate(t, [0.70, 0.85], [0, 1], Extrapolate.CLAMP);
-    const blueOpacity = interpolate(fadeT, [0, 1], [1, 0]);
-
-    return {
-      left: CENTER_X + offsetX,
-      top: CENTER_Y + offsetY,
-      transform: [
-        { rotate: `${blueRot}deg` },
-        { scale: blueScale },
-      ] as any,
-      opacity: blueOpacity,
-    } as any;
-  });
-
-  // ------------------- WHITE PART (top-left) -------------------
-  const whiteAnim = useAnimatedStyle(() => {
-    const t = progress.value;
-
-    const slideT = interpolate(t, [0, 0.45], [0, 1], Extrapolate.CLAMP);
-    const offsetX = interpolate(slideT, [0, 1], [-OFFSET_X, 0]);
-    const offsetY = interpolate(slideT, [0, 1], [-OFFSET_Y, 0]);
-
-    const rotT = interpolate(t, [0.45, 0.55], [0, 1], Extrapolate.CLAMP);
-    const whiteRot = interpolate(rotT, [0, 1], [-12, 0]);
-
-    const popT = interpolate(t, [0.55, 0.70], [0, 1], Extrapolate.CLAMP);
-    const whiteScale = interpolate(popT, [0, 1], [1, 1.05]);
-
-    const fadeT = interpolate(t, [0.70, 0.85], [0, 1], Extrapolate.CLAMP);
-    const whiteOpacity = interpolate(fadeT, [0, 1], [1, 0]);
-
-    return {
-      left: CENTER_X + offsetX,
-      top: CENTER_Y + offsetY,
-      transform: [
-        { rotate: `${whiteRot}deg` },
-        { scale: whiteScale },
-      ] as any,
-      opacity: whiteOpacity,
-    } as any;
-  });
-
-  // ------------------- COMBINED LOGO (cross-fade in) -------------------
-  const combinedAnim = useAnimatedStyle(() => {
-    const fadeInT = interpolate(
-      progress.value,
-      [0.70, 0.85],
-      [0, 1],
-      Extrapolate.CLAMP
-    );
-    return {
-      opacity: fadeInT,
-      left: CENTER_X,
-      top: CENTER_Y,
-    } as any;
-  });
-
-  // ------------------- TEXT PULSE -------------------
-  const textAnim = useAnimatedStyle(() => {
-    const pulse = interpolate(
-      progress.value,
-      [0.85, 1],
-      [0.6, 1],
-      Extrapolate.CLAMP
-    );
-    return { opacity: pulse };
-  });
 
   return (
     <View style={styles.container}>
-      {/* Blue half */}
-      <Animated.Image
-        source={require('../obex blue.png')}
-        style={[styles.logo, blueAnim]}
-        resizeMode="contain"
-      />
-
-      {/* White half */}
-      <Animated.Image
-        source={require('../obex white.png')}
-        style={[styles.logo, whiteAnim]}
-        resizeMode="contain"
-      />
-
-      {/* Final combined logo */}
+      {/* Combined logo */}
       <Animated.Image
         source={require('../Component 16 (1).png')}
-        style={[styles.logo, combinedAnim]}
+        style={[
+          styles.logo,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
         resizeMode="contain"
       />
 
       {/* Loading text */}
-      <Animated.Text style={[styles.loadingText, textAnim]}>
+      <Animated.Text style={[styles.loadingText, { opacity: fadeAnim }]}>
         Loading...
       </Animated.Text>
     </View>
