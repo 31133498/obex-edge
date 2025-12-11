@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const DeviceHealthScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const CircularProgress = ({ percentage }) => {
     return (
       <View style={styles.circularProgressContainer}>
@@ -189,7 +191,7 @@ const DeviceHealthScreen = ({ navigation }) => {
       </ScrollView>
       
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity 
           style={styles.navItem}
           onPress={() => navigation.navigate('Dashboard')}

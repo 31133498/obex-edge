@@ -131,7 +131,7 @@ const NotificationsScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom }]}>
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity 
           style={styles.navItem}
           onPress={() => navigation.navigate('Dashboard')}

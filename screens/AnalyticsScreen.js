@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RecentAlertsList from '../components/RecentAlertsList';
 import AddCameraModal from '../components/AddCameraModal';
 
 const AnalyticsScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('7 Days');
   const [showAddCameraModal, setShowAddCameraModal] = useState(false);
 
@@ -138,7 +140,7 @@ const AnalyticsScreen = ({ navigation }) => {
       </ScrollView>
       
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity 
           style={styles.navItem}
           onPress={() => navigation.navigate('Dashboard')}

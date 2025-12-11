@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AddCameraModal from '../components/AddCameraModal';
 import RTSPPlayer from '../components/RTSPPlayer';
 import VideoPlayer from '../components/VideoPlayer';
@@ -10,6 +11,7 @@ import SecurityAlertModal from '../components/SecurityAlertModal';
 import ThreatCard from '../components/ThreatCard';
 
 const DashboardScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [showAddCameraModal, setShowAddCameraModal] = useState(false);
   const [showSecurityAlert, setShowSecurityAlert] = useState(false);
   const [showThreatCard, setShowThreatCard] = useState(false);
@@ -296,7 +298,7 @@ const DashboardScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <TouchableOpacity style={[styles.navItem, styles.navItemActive]}>
           <Ionicons name="apps" size={20} color="#000000" />
         </TouchableOpacity>
@@ -633,7 +635,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     backgroundColor: '#1A1A1A',
-    paddingVertical: 12,
+    paddingTop: 12,
     justifyContent: 'space-around',
     borderWidth: 1,
     borderColor: '#555555',
