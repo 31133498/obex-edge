@@ -45,7 +45,7 @@ npm install
 npm install -g @expo/eas-cli
 
 # Build development version (connects to Metro bundler)
-eas build --platform android --profile development
+eas build --platform android --profile development #(This won/'t take time like the others)
 ```
 
 **Option B: Local Build (Requires Java SDK setup):**
