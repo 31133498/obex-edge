@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,11 +7,13 @@ import {
   TextInput, 
   ScrollView,
   Alert,
-  Dimensions 
+  Dimensions,
+  ActivityIndicator 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RTSPPlayer from '../components/RTSPPlayer';
 import NetworkTest from '../components/NetworkTest';
+import CameraTunnelService from '../services/CameraTunnelService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -33,6 +35,33 @@ const LiveStreamScreen = ({ navigation }) => {
       hasWeaponDetection: true
     }
   ]);
+  
+  // FRPC Camera State
+  const [frpcCameras, setFrpcCameras] = useState([]);
+  const [tunnelStatus, setTunnelStatus] = useState({ isActive: false });
+  const [loadingFrpc, setLoadingFrpc] = useState(false);
+  
+  useEffect(() => {
+    // Check if native module is available before loading
+    const initializeFrpc = async () => {
+      try {
+        // Test if native module is available
+        const { NativeModules } = require('react-native');
+        if (NativeModules.FRPCModule) {
+          await loadFrpcCameras();
+          await loadTunnelStatus();
+        } else {
+          console.log('FRPC Native module not available - app needs rebuild');
+          setTunnelStatus({ isActive: false, error: 'Rebuild required' });
+        }
+      } catch (error) {
+        console.error('FRPC initialization error:', error);
+        setTunnelStatus({ isActive: false, error: 'Module error' });
+      }
+    };
+    
+    initializeFrpc();
+  }, []);
 
   const handleStartStream = () => {
     if (!rtspUrl.trim()) {
@@ -67,6 +96,69 @@ const LiveStreamScreen = ({ navigation }) => {
     setSavedStreams(prev => 
       prev.map(s => ({ ...s, isActive: s.id === stream.id }))
     );
+  };
+
+  // FRPC Functions
+  const loadFrpcCameras = async () => {
+    try {
+      const cameras = await CameraTunnelService.getCameras();
+      setFrpcCameras(cameras);
+    } catch (error) {
+      console.error('Failed to load FRPC cameras:', error);
+      setFrpcCameras([]);
+    }
+  };
+
+  const loadTunnelStatus = async () => {
+    try {
+      const status = await CameraTunnelService.getTunnelStatus();
+      setTunnelStatus(status);
+    } catch (error) {
+      console.error('Failed to load tunnel status:', error);
+      setTunnelStatus({ isActive: false, error: 'Native module not loaded' });
+    }
+  };
+
+  const handleStartTunnel = async () => {
+    setLoadingFrpc(true);
+    try {
+      const result = await CameraTunnelService.setupAndStart();
+      if (result.success) {
+        Alert.alert('Success', 'Tunnel started successfully');
+        loadTunnelStatus();
+      } else {
+        Alert.alert('Error', result.message);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to start tunnel');
+    } finally {
+      setLoadingFrpc(false);
+    }
+  };
+
+  const handleStopTunnel = async () => {
+    try {
+      const result = await CameraTunnelService.stopTunnel();
+      if (result.success) {
+        Alert.alert('Success', 'Tunnel stopped');
+        loadTunnelStatus();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to stop tunnel');
+    }
+  };
+
+  const selectFrpcCamera = async (camera) => {
+    if (!tunnelStatus.isActive) {
+      Alert.alert('Tunnel Not Active', 'Please start the tunnel first');
+      return;
+    }
+    try {
+      const streamUrl = await CameraTunnelService.getCameraStreamURL(camera);
+      setRtspUrl(streamUrl);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to get camera stream URL');
+    }
   };
 
   return (
@@ -138,9 +230,86 @@ const LiveStreamScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* FRPC Remote Cameras */}
+        <View style={styles.savedStreamsContainer}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Remote Cameras (FRPC)</Text>
+            <TouchableOpacity
+              style={styles.manageButton}
+              onPress={() => navigation.navigate('CameraManagement')}
+            >
+              <Ionicons name="settings" size={16} color="#4A9EFF" />
+              <Text style={styles.manageButtonText}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Tunnel Status */}
+          <View style={styles.tunnelStatus}>
+            <View style={styles.statusRow}>
+              <View style={[styles.statusDot, { backgroundColor: tunnelStatus.isActive ? '#4CAF50' : '#F44336' }]} />
+              <Text style={styles.statusText}>
+                Tunnel: {tunnelStatus.isActive ? 'Active' : tunnelStatus.error || 'Inactive'}
+              </Text>
+            </View>
+            
+            <TouchableOpacity
+              style={[styles.tunnelButton, tunnelStatus.isActive ? styles.stopTunnelButton : styles.startTunnelButton, tunnelStatus.error && styles.disabledButton]}
+              onPress={tunnelStatus.isActive ? handleStopTunnel : handleStartTunnel}
+              disabled={loadingFrpc || tunnelStatus.error}
+            >
+              {loadingFrpc ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons 
+                    name={tunnelStatus.isActive ? "stop" : "play"} 
+                    size={16} 
+                    color="#FFF" 
+                  />
+                  <Text style={styles.tunnelButtonText}>
+                    {tunnelStatus.isActive ? 'Stop' : 'Start'} Tunnel
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* FRPC Cameras */}
+          {frpcCameras.length > 0 ? (
+            frpcCameras.filter(cam => cam.enabled).map((camera) => (
+              <TouchableOpacity
+                key={camera.id}
+                style={styles.streamItem}
+                onPress={() => selectFrpcCamera(camera)}
+              >
+                <View style={styles.streamInfo}>
+                  <Ionicons name="globe" size={20} color="#4A9EFF" />
+                  <View style={styles.streamTextContainer}>
+                    <Text style={styles.streamName}>{camera.name}</Text>
+                    <Text style={styles.streamUrl}>
+                      Remote Port: {camera.remotePort}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#666666" />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No remote cameras configured</Text>
+              <TouchableOpacity
+                style={styles.setupButton}
+                onPress={() => navigation.navigate('ServerSetup')}
+              >
+                <Text style={styles.setupButtonText}>Setup FRPS Server</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
         {/* Saved Streams */}
         <View style={styles.savedStreamsContainer}>
-          <Text style={styles.sectionTitle}>Saved Cameras</Text>
+          <Text style={styles.sectionTitle}>Local Cameras</Text>
           {savedStreams.map((stream) => (
             <TouchableOpacity
               key={stream.id}
@@ -373,6 +542,94 @@ const styles = StyleSheet.create({
     color: '#CCCCCC',
     fontSize: 14,
     marginBottom: 4,
+  },
+  // FRPC Styles
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  manageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  manageButtonText: {
+    color: '#4A9EFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tunnelStatus: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  tunnelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    gap: 4,
+  },
+  startTunnelButton: {
+    backgroundColor: '#4CAF50',
+  },
+  stopTunnelButton: {
+    backgroundColor: '#F44336',
+  },
+  tunnelButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  streamUrl: {
+    color: '#999',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  setupButton: {
+    backgroundColor: '#4A9EFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  setupButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  disabledButton: {
+    backgroundColor: '#666',
+    opacity: 0.5,
   },
 });
 
