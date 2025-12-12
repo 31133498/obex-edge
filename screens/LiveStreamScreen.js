@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import RTSPPlayer from '../components/RTSPPlayer';
 import NetworkTest from '../components/NetworkTest';
 import CameraTunnelService from '../services/CameraTunnelService';
+import ModuleTest from '../components/ModuleTest';
 
 const { width, height } = Dimensions.get('window');
 
@@ -255,7 +256,7 @@ const LiveStreamScreen = ({ navigation }) => {
             <TouchableOpacity
               style={[styles.tunnelButton, tunnelStatus.isActive ? styles.stopTunnelButton : styles.startTunnelButton, tunnelStatus.error && styles.disabledButton]}
               onPress={tunnelStatus.isActive ? handleStopTunnel : handleStartTunnel}
-              disabled={loadingFrpc || tunnelStatus.error}
+              disabled={!!(loadingFrpc || tunnelStatus.error)}
             >
               {loadingFrpc ? (
                 <ActivityIndicator size="small" color="#FFF" />
@@ -349,6 +350,9 @@ const LiveStreamScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {/* Module Test */}
+        <ModuleTest />
+        
         {/* Network Test */}
         <NetworkTest cameraIP="192.168.1.10" />
 
