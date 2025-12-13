@@ -1,6 +1,9 @@
 *.mp4
 *.zip
 *.png
+android/build/
+android/app/build/
+android/.gradle/
 Activity_Timeline 1.png
 Add_Camera.png
 Camera-img.png
