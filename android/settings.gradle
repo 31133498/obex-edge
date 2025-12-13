@@ -22,14 +22,11 @@ plugins {
   id("expo-autolinking-settings")
 }
 
-extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-  ex.autolinkLibrariesFromCommand(expoAutolinking.rnConfigCommand)
-}
 expoAutolinking.useExpoModules()
 
 rootProject.name = 'ObexEdge'
 
-expoAutolinking.useExpoVersionCatalog()
+apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
 
 include ':app'
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
