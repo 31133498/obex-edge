@@ -54,10 +54,17 @@ class FRPCModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaMo
             inputStream.close()
             outputStream.close()
             
-            // Make executable
+            // Make executable using multiple methods for reliability
             frpcFile.setExecutable(true, false)
             frpcFile.setReadable(true, false)
             frpcFile.setWritable(true, true)
+            
+            // Also try using chmod command
+            try {
+                Runtime.getRuntime().exec("chmod 755 ${frpcFile.absolutePath}").waitFor()
+            } catch (e: Exception) {
+                Log.w(TAG, "chmod command failed, relying on setExecutable: ${e.message}")
+            }
             
             Log.d(TAG, "FRPC binary installed at: ${frpcFile.absolutePath}")
             promise.resolve(frpcFile.absolutePath)
@@ -85,7 +92,7 @@ class FRPCModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaMo
                 val id = camera?.getString("id") ?: "camera_$i"
                 val localIP = camera?.getString("localIP") ?: ""
                 val localPort = camera?.getInt("localPort") ?: 554
-                val remotePort = camera?.getInt("remotePort") ?: (7001 + i)
+                val remotePort = camera?.getInt("remotePort") ?: (500 + i)
                 
                 configBuilder.append("[$id]\n")
                 configBuilder.append("type = tcp\n")

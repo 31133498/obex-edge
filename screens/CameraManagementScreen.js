@@ -332,12 +332,12 @@ const CameraManagementScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Remote Port (7001-8000)</Text>
+                <Text style={styles.label}>Remote Port (500-65535)</Text>
                 <TextInput
                   style={styles.input}
                   value={remotePort}
                   onChangeText={setRemotePort}
-                  placeholder="7001"
+                  placeholder="500"
                   placeholderTextColor="#999"
                   keyboardType="numeric"
                 />

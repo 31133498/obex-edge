@@ -49,7 +49,7 @@ class CameraTunnelService {
     const portValidation = this.validatePort(remotePort, cameras);
     if (!portValidation.valid) {
       throw new Error(portValidation.isDuplicate ? 
-        'Port already in use' : 'Port outside valid range (7001-8000)');
+        'Port already in use' : 'Port outside valid range (500-65535)');
     }
     
     const camera = {
@@ -79,7 +79,7 @@ class CameraTunnelService {
       
       if (!portValidation.valid) {
         throw new Error(portValidation.isDuplicate ? 
-          'Port already in use' : 'Port outside valid range (7001-8000)');
+          'Port already in use' : 'Port outside valid range (500-65535)');
       }
     }
     
@@ -232,7 +232,7 @@ class CameraTunnelService {
   // Utility Methods
   getNextAvailablePort(existingCameras) {
     const usedPorts = existingCameras.map(c => c.remotePort);
-    let port = 7001;
+    let port = 500;
     while (usedPorts.includes(port)) {
       port++;
     }
@@ -242,7 +242,7 @@ class CameraTunnelService {
   validatePort(port, existingCameras) {
     const portNum = parseInt(port);
     const isDuplicate = existingCameras.some(c => c.remotePort === portNum);
-    const isValidRange = portNum >= 7001 && portNum <= 8000;
+    const isValidRange = portNum >= 500 && portNum <= 65535;
     
     return {
       valid: !isDuplicate && isValidRange,
@@ -287,8 +287,8 @@ class CameraTunnelService {
       errors.push('Valid local port (1-65535) is required');
     }
     
-    if (!camera.remotePort || camera.remotePort < 7001 || camera.remotePort > 8000) {
-      errors.push('Remote port must be between 7001-8000');
+    if (!camera.remotePort || camera.remotePort < 500 || camera.remotePort > 65535) {
+      errors.push('Remote port must be between 500-65535');
     }
     
     return {
