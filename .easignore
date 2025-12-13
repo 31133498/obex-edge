@@ -1,5 +1,3 @@
-*.mp4
-*.zip
 android/build/
 android/app/build/
 android/.gradle/
