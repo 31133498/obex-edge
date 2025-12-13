@@ -11,10 +11,4 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
-# FRPC Native Modules
--keep class com.anonymous.obexedge.frpc.** { *; }
--keep class com.anonymous.obexedge.frpc.FRPCModule { *; }
--keep class com.anonymous.obexedge.frpc.FRPCPackage { *; }
--keep class com.anonymous.obexedge.frpc.FRPCService { *; }
-
 # Add any project specific keep options here:
