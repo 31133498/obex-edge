@@ -1,6 +1,0 @@
-{
-  "platforms": ["android"],
-  "android": {
-    "modules": ["com.anonymous.obexedge.frpc.FRPCModule"]
-  }
-}
