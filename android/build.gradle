@@ -16,6 +16,9 @@ buildscript {
   }
 }
 
+// APPLY EXPO AUTOLINKING EARLY
+apply from: new File(["node", "--print", "require.resolve('expo/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+
 allprojects {
   repositories {
     google()
