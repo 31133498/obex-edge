@@ -3,9 +3,11 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Keyb
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import CameraSetupModal from './CameraSetupModal';
-import AuthService from '../services/auth';
+import { useAuth } from '../context/AuthContext';
+import WebSocketService from '../services/websocket';
 
 export default function SignUp({ navigation }) {
+  const { signup, isLoading } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -20,14 +22,19 @@ export default function SignUp({ navigation }) {
     }
 
     try {
-      const response = await AuthService.register({
+      await signup({
         fullName,
         phoneNumber,
         email,
         password,
+        confirmPassword: password,
       });
 
       Alert.alert('Success', 'Account created successfully!');
+      
+      // Connect to WebSocket for real-time alerts
+      WebSocketService.connect();
+      
       setShowCameraSetup(true);
     } catch (error) {
       Alert.alert('Error', error.message || 'Registration failed');
@@ -37,7 +44,7 @@ export default function SignUp({ navigation }) {
 
   const handleCameraSetupClose = () => {
     setShowCameraSetup(false);
-    navigation.navigate('Dashboard');
+    navigation.navigate('Dashboard', { showTutorial: true });
   };
 
   return (
@@ -123,8 +130,14 @@ export default function SignUp({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSignUp}>
-          <Text style={styles.submitButtonText}>Create Account</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, isLoading && styles.disabledButton]} 
+          onPress={handleSignUp}
+          disabled={isLoading}
+        >
+          <Text style={styles.submitButtonText}>
+            {isLoading ? 'Creating Account...' : 'Create Account'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -268,5 +281,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: 'center',
     marginTop: 12,
+  },
+  disabledButton: {
+    opacity: 0.6,
   }
 });

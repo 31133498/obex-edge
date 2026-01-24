@@ -1,14 +1,27 @@
-// API Configuration
-const API_BASE_URL = 'https://obex-edge-backend.onrender.com/api';
+import { storage } from '../utils/storage';
 
-// API Service Class
+const BASE_URL = 'https://obex-edge-backend.onrender.com/api/v1';
+
 class ApiService {
-  // Base request method
+  constructor() {
+    this.baseURL = BASE_URL;
+  }
+
+  // Get authorization headers
+  async getAuthHeaders() {
+    const token = await storage.getToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
+  // Central request method
   async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${this.baseURL}${endpoint}`;
+    const authHeaders = await this.getAuthHeaders();
+    
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
         ...options.headers,
       },
       ...options,
@@ -16,40 +29,60 @@ class ApiService {
 
     try {
       console.log('API Request:', url);
-      console.log('API Config:', config);
-      
       const response = await fetch(url, config);
-      console.log('API Response Status:', response.status);
       
-      const data = await response.json();
-      console.log('API Response Data:', data);
+      // Handle non-JSON responses
+      const contentType = response.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        data = { message: await response.text() };
+      }
       
       if (!response.ok) {
-        throw new Error(data.message || data.detail || 'API request failed');
+        throw this.normalizeError(data, response.status);
       }
       
       return data;
     } catch (error) {
-      console.error('API Error Details:', {
-        message: error.message,
-        url,
-        endpoint,
-      });
-      throw error;
+      if (error.message && error.status) {
+        throw error; // Already normalized
+      }
+      throw this.normalizeError({ message: error.message }, 0);
     }
   }
 
-  // Authentication APIs
-  async register(userData) {
+  // Normalize errors to consistent format
+  normalizeError(errorData, status) {
+    let message = 'An unexpected error occurred';
+    
+    switch (status) {
+      case 401:
+        message = 'Invalid email or password';
+        break;
+      case 409:
+        message = 'Account already exists';
+        break;
+      case 422:
+        message = errorData.detail || 'Invalid input data';
+        break;
+      case 0:
+        message = 'Check your internet connection';
+        break;
+      default:
+        message = errorData.message || errorData.detail || message;
+    }
+    
+    return { message, status };
+  }
+
+  // Authentication endpoints
+  async signup(userData) {
     return this.request('/auth/signup', {
       method: 'POST',
-      body: JSON.stringify({
-        username: userData.fullName,
-        email: userData.email,
-        phoneNumber: userData.phoneNumber,
-        password: userData.password,
-        confirmPassword: userData.password,
-      }),
+      body: JSON.stringify(userData),
     });
   }
 
@@ -60,95 +93,75 @@ class ApiService {
     });
   }
 
-  async logout() {
-    return this.request('/auth/logout', {
+  // OTP endpoints (scaffolded)
+  async generateOTP(data) {
+    return this.request('/auth/otp/generate', {
       method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
-  // User APIs
-  async getUserProfile(token) {
-    return this.request('/user/profile', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-  }
-
-  async updateProfile(userData, token) {
-    return this.request('/user/profile', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    });
-  }
-
-  // Camera APIs
-  async getCameras(token) {
-    return this.request('/cameras', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-  }
-
-  async addCamera(cameraData, token) {
-    return this.request('/cameras', {
+  async verifyOTP(data) {
+    return this.request('/auth/otp/verify', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Camera endpoints
+  async createCamera(cameraData) {
+    return this.request('/cameras/create', {
+      method: 'POST',
       body: JSON.stringify(cameraData),
     });
   }
 
-  async deleteCamera(cameraId, token) {
+  async getCameras() {
+    return this.request('/cameras/');
+  }
+
+  async getCamera(cameraId) {
+    return this.request(`/cameras/${cameraId}`);
+  }
+
+  async updateCamera(cameraId, cameraData) {
+    return this.request(`/cameras/${cameraId}`, {
+      method: 'PUT',
+      body: JSON.stringify(cameraData),
+    });
+  }
+
+  async deleteCamera(cameraId) {
     return this.request(`/cameras/${cameraId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
     });
   }
 
-  // Alerts APIs
-  async getAlerts(token) {
-    return this.request('/alerts', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+  // Alert endpoints
+  async submitAlert(alertData) {
+    return this.request('/alerts/submit', {
+      method: 'POST',
+      body: JSON.stringify(alertData),
     });
   }
 
-  async markAlertAsRead(alertId, token) {
-    return this.request(`/alerts/${alertId}/read`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+  async getRecentAlerts() {
+    return this.request('/alerts/recent');
   }
 
-  // Analytics APIs
-  async getAnalytics(token, timeRange = '7d') {
-    return this.request(`/analytics?range=${timeRange}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+  async getSupportedAlertTypes() {
+    return this.request('/alerts/supported-types');
   }
 
-  // Device Health APIs
-  async getDeviceHealth(token) {
-    return this.request('/devices/health', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+  // Model logs endpoints
+  async getModelLogs(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/model-logs/${queryString ? '?' + queryString : ''}`);
+  }
+
+  async getModelLogById(logId) {
+    return this.request(`/model-logs/${logId}`);
   }
 }
 
-// Export singleton instance
 export default new ApiService();

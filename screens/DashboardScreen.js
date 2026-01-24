@@ -1,18 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AddCameraModal from '../components/AddCameraModal';
-import RTSPPlayer from '../components/RTSPPlayer';
+import RTSPPlayerReal from '../components/RTSPPlayerReal';
 import VideoPlayer from '../components/VideoPlayer';
 import SecurityAlertModal from '../components/SecurityAlertModal';
 import ThreatCard from '../components/ThreatCard';
+import TutorialTooltip from '../components/TutorialTooltip';
+import ApiService from '../services/api';
+import WebSocketService from '../services/websocket';
+import { useAuth } from '../context/AuthContext';
 
-const DashboardScreen = ({ navigation }) => {
+const DashboardScreen = ({ navigation, route }) => {
+  const { user, isAuthenticated } = useAuth();
   const [showAddCameraModal, setShowAddCameraModal] = useState(false);
   const [showSecurityAlert, setShowSecurityAlert] = useState(false);
   const [showThreatCard, setShowThreatCard] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(1);
+  const [targetLayout, setTargetLayout] = useState(null);
+  const [cameras, setCameras] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+  const [isLoadingCameras, setIsLoadingCameras] = useState(true);
   const scrollViewRef = useRef(null);
+  const addButtonRef = useRef(null);
+  const zonesNavRef = useRef(null);
+  const cameraCardRef = useRef(null);
+
+  useEffect(() => {
+    if (route?.params?.showTutorial) {
+      setShowTutorial(true);
+    }
+    
+    if (isAuthenticated) {
+      loadCameras();
+      setupWebSocketListeners();
+    }
+  }, [route?.params?.showTutorial, isAuthenticated]);
+
+  const loadCameras = async () => {
+    try {
+      setIsLoadingCameras(true);
+      const response = await ApiService.getCameras();
+      setCameras(response.cameras || response || []);
+    } catch (error) {
+      console.error('Error loading cameras:', error);
+      Alert.alert('Error', 'Failed to load cameras');
+    } finally {
+      setIsLoadingCameras(false);
+    }
+  };
+
+  const setupWebSocketListeners = () => {
+    WebSocketService.on('alert', (alertData) => {
+      console.log('Received alert:', alertData);
+      setAlerts(prev => [alertData, ...prev]);
+      setShowSecurityAlert(true);
+    });
+
+    WebSocketService.on('connected', () => {
+      console.log('WebSocket connected to dashboard');
+    });
+
+    WebSocketService.on('disconnected', () => {
+      console.log('WebSocket disconnected from dashboard');
+    });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -34,32 +88,72 @@ const DashboardScreen = ({ navigation }) => {
     setShowThreatCard(false);
     setShowSecurityAlert(true);
   };
+
+  const handleTutorialNext = () => {
+    if (tutorialStep < 3) {
+      setTutorialStep(tutorialStep + 1);
+      measureTarget(tutorialStep + 1);
+    }
+  };
+
+  const handleTutorialPrevious = () => {
+    if (tutorialStep > 1) {
+      setTutorialStep(tutorialStep - 1);
+      measureTarget(tutorialStep - 1);
+    }
+  };
+
+  const handleTutorialClose = () => {
+    setShowTutorial(false);
+    setTutorialStep(1);
+  };
+
+  const measureTarget = (step) => {
+    const ref = step === 1 ? addButtonRef : step === 2 ? zonesNavRef : cameraCardRef;
+    if (ref.current) {
+      ref.current.measure((x, y, width, height, pageX, pageY) => {
+        setTargetLayout({ top: pageY, left: pageX, width, height });
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (showTutorial && tutorialStep) {
+      setTimeout(() => measureTarget(tutorialStep), 100);
+    }
+  }, [showTutorial, tutorialStep]);
   const [cameras, setCameras] = useState([
     {
       id: 1,
       name: 'Front-door Camera',
       location: 'Main Entrance',
-      rtspUrl: null,
+      rtsp_url: 'rtsp://admin:Admin1234@staging.ai.avzdax.com:557/1/1',
       isOnline: true
     },
     {
       id: 2,
       name: 'Back-yard Camera',
       location: 'Garden Area',
-      rtspUrl: null,
+      rtsp_url: null,
       isOnline: false
     }
   ]);
 
-  const handleAddCamera = (cameraData) => {
-    const newCamera = {
-      id: Date.now(),
-      name: cameraData.name,
-      location: 'New Location',
-      rtspUrl: cameraData.rtspUrl,
-      isOnline: true
-    };
-    setCameras(prev => [...prev, newCamera]);
+  const handleAddCamera = async (cameraData) => {
+    try {
+      const newCamera = await ApiService.createCamera({
+        name: cameraData.name,
+        rtsp_url: cameraData.rtspUrl,
+        location: 'New Location',
+        is_active: true
+      });
+      
+      setCameras(prev => [...prev, newCamera]);
+      Alert.alert('Success', 'Camera added successfully!');
+    } catch (error) {
+      console.error('Error adding camera:', error);
+      Alert.alert('Error', error.message || 'Failed to add camera');
+    }
   };
 
   return (
@@ -162,6 +256,18 @@ const DashboardScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
+        {/* Debug Button */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.debugButton}
+            onPress={() => navigation.navigate('Debug')}
+          >
+            <Ionicons name="bug" size={24} color="#FFFFFF" />
+            <Text style={styles.debugText}>Debug & API Tests</Text>
+            <Ionicons name="chevron-forward" size={20} color="#4A9EFF" />
+          </TouchableOpacity>
+        </View>
+
         {/* Security Alert Modal */}
         <SecurityAlertModal 
           visible={showSecurityAlert}
@@ -173,6 +279,7 @@ const DashboardScreen = ({ navigation }) => {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Cameras ({cameras.length})</Text>
             <TouchableOpacity 
+              ref={addButtonRef}
               style={styles.addButton}
               onPress={() => setShowAddCameraModal(true)}
             >
@@ -188,8 +295,12 @@ const DashboardScreen = ({ navigation }) => {
             style={styles.cameraScrollView}
             contentContainerStyle={styles.cameraScrollContent}
           >
-            {cameras.map((camera) => (
-              <View key={camera.id} style={styles.cameraCard}>
+            {cameras.map((camera, index) => (
+              <View 
+                key={camera.id} 
+                ref={index === 0 ? cameraCardRef : null}
+                style={styles.cameraCard}
+              >
                 <LinearGradient
                   colors={['#333333', '#2A3A4A']}
                   style={styles.cameraFullContainer}
@@ -205,22 +316,21 @@ const DashboardScreen = ({ navigation }) => {
                   <View style={styles.cameraIconArea}>
                     {camera.id === 1 ? (
                       <>
-                        <VideoPlayer style={styles.videoPlayer} />
-                        <View style={styles.liveIndicator}>
-                          <View style={styles.liveDot} />
-                          <Text style={styles.liveText}>LIVE</Text>
-                        </View>
+                        <RTSPPlayerReal 
+                          rtspUrl={camera.rtsp_url}
+                          style={styles.rtspPlayer}
+                          onError={(error) => console.error('RTSP Error:', error)}
+                          onLoad={(data) => console.log('RTSP Loaded:', data)}
+                        />
                       </>
-                    ) : camera.rtspUrl ? (
+                    ) : camera.rtsp_url ? (
                       <>
-                        <View style={styles.videoStream}>
-                          <Text style={styles.streamingText}>RTSP Stream Ready</Text>
-                          <Text style={styles.urlText}>{camera.rtspUrl}</Text>
-                        </View>
-                        <View style={styles.liveIndicator}>
-                          <View style={styles.liveDot} />
-                          <Text style={styles.liveText}>READY</Text>
-                        </View>
+                        <RTSPPlayerReal 
+                          rtspUrl={camera.rtsp_url}
+                          style={styles.rtspPlayer}
+                          onError={(error) => console.error('RTSP Error:', error)}
+                          onLoad={(data) => console.log('RTSP Loaded:', data)}
+                        />
                       </>
                     ) : (
                       <>
@@ -288,6 +398,7 @@ const DashboardScreen = ({ navigation }) => {
           <Ionicons name="add" size={24} color="#8B92A7" />
         </TouchableOpacity>
         <TouchableOpacity 
+          ref={zonesNavRef}
           style={styles.navItem}
           onPress={() => navigation.navigate('DeviceHealth')}
         >
@@ -302,6 +413,15 @@ const DashboardScreen = ({ navigation }) => {
         visible={showAddCameraModal}
         onClose={() => setShowAddCameraModal(false)}
         onComplete={handleAddCamera}
+      />
+
+      <TutorialTooltip
+        visible={showTutorial}
+        currentStep={tutorialStep}
+        onNext={handleTutorialNext}
+        onPrevious={handleTutorialPrevious}
+        onClose={handleTutorialClose}
+        targetLayout={targetLayout}
       />
     </View>
   );
@@ -682,6 +802,13 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
+  rtspPlayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
 
   liveStreamButton: {
     backgroundColor: 'rgba(64,64,64,0.7)',
@@ -694,6 +821,23 @@ const styles = StyleSheet.create({
     borderColor: '#555555',
   },
   liveStreamText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+    marginLeft: 12,
+  },
+  debugButton: {
+    backgroundColor: 'rgba(64,64,64,0.7)',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 0.5,
+    borderColor: '#555555',
+  },
+  debugText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',

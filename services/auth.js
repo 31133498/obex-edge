@@ -1,19 +1,33 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import ApiService from './api';
+import { storage } from '../utils/storage';
 
 class AuthService {
-  // Storage keys
-  TOKEN_KEY = 'auth_token';
-  USER_KEY = 'user_data';
-
   // Register user
-  async register(userData) {
+  async signup(userData) {
     try {
-      const response = await ApiService.register(userData);
+      const payload = {
+        username: userData.fullName,
+        email: userData.email,
+        phoneNumber: userData.phoneNumber,
+        password: userData.password,
+        confirmPassword: userData.confirmPassword || userData.password,
+        organizationName: userData.organizationName,
+        organizationId: userData.organizationId,
+        role: userData.role,
+        companyRole: userData.companyRole,
+        isAdmin: userData.isAdmin || false,
+      };
       
-      if (response.token) {
-        await this.saveToken(response.token);
-        await this.saveUser(response.user);
+      const response = await ApiService.signup(payload);
+      
+      // Store user data if returned
+      if (response.user) {
+        await storage.setUserData(response.user);
+      }
+      
+      // Only store token if backend returns one
+      if (response.access_token) {
+        await storage.setToken(response.access_token);
       }
       
       return response;
@@ -27,9 +41,18 @@ class AuthService {
     try {
       const response = await ApiService.login(credentials);
       
-      if (response.token) {
-        await this.saveToken(response.token);
-        await this.saveUser(response.user);
+      // Store token and user data
+      if (response.access_token) {
+        await storage.setToken(response.access_token);
+      }
+      
+      if (response.user_id || response.organization_id) {
+        const userData = {
+          user_id: response.user_id,
+          organization_id: response.organization_id,
+          email: credentials.email,
+        };
+        await storage.setUserData(userData);
       }
       
       return response;
@@ -41,51 +64,45 @@ class AuthService {
   // Logout user
   async logout() {
     try {
-      await ApiService.logout();
-      await this.clearStorage();
+      await storage.clearAuthData();
     } catch (error) {
-      // Clear local storage even if API call fails
-      await this.clearStorage();
-      throw error;
+      console.error('Logout error:', error);
+      // Clear storage even if there's an error
+      await storage.clearAuthData();
     }
-  }
-
-  // Save token to storage
-  async saveToken(token) {
-    await AsyncStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  // Get token from storage
-  async getToken() {
-    return await AsyncStorage.getItem(this.TOKEN_KEY);
-  }
-
-  // Save user data to storage
-  async saveUser(userData) {
-    await AsyncStorage.setItem(this.USER_KEY, JSON.stringify(userData));
-  }
-
-  // Get user data from storage
-  async getUser() {
-    const userData = await AsyncStorage.getItem(this.USER_KEY);
-    return userData ? JSON.parse(userData) : null;
   }
 
   // Check if user is authenticated
   async isAuthenticated() {
-    const token = await this.getToken();
+    const token = await storage.getToken();
     return !!token;
   }
 
-  // Clear all storage
-  async clearStorage() {
-    await AsyncStorage.multiRemove([this.TOKEN_KEY, this.USER_KEY]);
+  // Get current user data
+  async getCurrentUser() {
+    return await storage.getUserData();
   }
 
-  // Get authenticated headers
-  async getAuthHeaders() {
-    const token = await this.getToken();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  // Get current token
+  async getToken() {
+    return await storage.getToken();
+  }
+
+  // Restore session from storage
+  async restoreSession() {
+    try {
+      const token = await storage.getToken();
+      const userData = await storage.getUserData();
+      
+      if (token && userData) {
+        return { token, user: userData };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      return null;
+    }
   }
 }
 

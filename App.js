@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
+import { AuthProvider } from './context/AuthContext';
 import LogoLoadingScreen from './components/LogoLoadingScreen';
 import SignIn from './components/SignIn';
 import SignUp from './components/SignUp';
@@ -12,6 +13,7 @@ import DeviceHealthScreen from './screens/DeviceHealthScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import LiveStreamScreen from './screens/LiveStreamScreen';
+import DebugScreen from './screens/DebugScreen';
 
 const Stack = createStackNavigator();
 
@@ -28,19 +30,22 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Onboarding" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="SignIn" component={SignIn} />
-        <Stack.Screen name="SignUp" component={SignUp} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="Analytics" component={AnalyticsScreen} />
-        <Stack.Screen name="DeviceHealth" component={DeviceHealthScreen} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="LiveStream" component={LiveStreamScreen} />
-      </Stack.Navigator>
-      <StatusBar style="light" />
-    </NavigationContainer>
+    <AuthProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Onboarding" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="SignIn" component={SignIn} />
+          <Stack.Screen name="SignUp" component={SignUp} />
+          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+          <Stack.Screen name="DeviceHealth" component={DeviceHealthScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="LiveStream" component={LiveStreamScreen} />
+          <Stack.Screen name="Debug" component={DebugScreen} />
+        </Stack.Navigator>
+        <StatusBar style="light" />
+      </NavigationContainer>
+    </AuthProvider>
   );
 }

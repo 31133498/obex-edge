@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import AuthService from '../services/auth';
+import { useAuth } from '../context/AuthContext';
+import WebSocketService from '../services/websocket';
 
 export default function SignIn({ navigation }) {
+  const { login, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,9 +18,13 @@ export default function SignIn({ navigation }) {
     }
 
     try {
-      const response = await AuthService.login({ email, password });
+      await login({ email, password });
       Alert.alert('Success', 'Login successful!');
-      navigation.navigate('Dashboard');
+      
+      // Connect to WebSocket for real-time alerts
+      WebSocketService.connect();
+      
+      navigation.navigate('Dashboard', { showTutorial: true });
     } catch (error) {
       Alert.alert('Error', error.message || 'Login failed');
       console.error('Login error:', error);
@@ -78,8 +84,14 @@ export default function SignIn({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSignIn}>
-          <Text style={styles.submitButtonText}>Sign In</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, isLoading && styles.disabledButton]} 
+          onPress={handleSignIn}
+          disabled={isLoading}
+        >
+          <Text style={styles.submitButtonText}>
+            {isLoading ? 'Signing In...' : 'Sign In'}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -225,5 +237,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'center',
     marginTop: 16,
+  },
+  disabledButton: {
+    opacity: 0.6,
   }
 });

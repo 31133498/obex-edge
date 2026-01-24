@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,28 +10,61 @@ import {
   Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import RTSPPlayer from '../components/RTSPPlayer';
+import RTSPPlayerReal from '../components/RTSPPlayerReal';
 import NetworkTest from '../components/NetworkTest';
+import ApiService from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
 const LiveStreamScreen = ({ navigation }) => {
-  const [rtspUrl, setRtspUrl] = useState('');
+  const { isAuthenticated } = useAuth();
+  const [rtspUrl, setRtspUrl] = useState('rtsp://admin:Admin1234@staging.ai.avzdax.com:557/1/1');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [savedStreams, setSavedStreams] = useState([
-    {
-      id: 1,
-      name: 'Front Door Camera',
-      url: 'rtsp://admin:password@192.168.1.100:554/stream1',
-      isActive: false
-    },
-    {
-      id: 2,
-      name: 'Back Yard Camera',
-      url: 'rtsp://admin:password@192.168.1.101:554/stream1',
-      isActive: false
+  const [savedStreams, setSavedStreams] = useState([]);
+  const [isLoadingStreams, setIsLoadingStreams] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadSavedStreams();
     }
-  ]);
+  }, [isAuthenticated]);
+
+  const loadSavedStreams = async () => {
+    try {
+      setIsLoadingStreams(true);
+      const response = await ApiService.getCameras();
+      const cameras = response.cameras || response || [];
+      
+      const streams = cameras.map(camera => ({
+        id: camera.id,
+        name: camera.name,
+        url: camera.rtsp_url || camera.rtspUrl,
+        isActive: false
+      }));
+      
+      setSavedStreams(streams);
+    } catch (error) {
+      console.error('Error loading cameras:', error);
+      // Fallback to mock data
+      setSavedStreams([
+        {
+          id: 1,
+          name: 'Front Door Camera',
+          url: 'rtsp://admin:Admin1234@staging.ai.avzdax.com:557/1/1',
+          isActive: false
+        },
+        {
+          id: 2,
+          name: 'Back Yard Camera',
+          url: 'rtsp://admin:password@192.168.1.101:554/stream1',
+          isActive: false
+        }
+      ]);
+    } finally {
+      setIsLoadingStreams(false);
+    }
+  };
 
   const handleStartStream = () => {
     if (!rtspUrl.trim()) {
@@ -86,7 +119,7 @@ const LiveStreamScreen = ({ navigation }) => {
         {/* Stream Player */}
         <View style={styles.playerContainer}>
           {isStreaming ? (
-            <RTSPPlayer
+            <RTSPPlayerReal
               rtspUrl={rtspUrl}
               style={styles.player}
               onError={handleStreamError}
